@@ -614,6 +614,14 @@ public class MySqlConnectorConfig {
                                                                     + "The default is 'true'. This is independent of how the connector internally records database history.")
                                                             .withDefault(true);
 
+    public static final Field EXPECT_METADATA_EVENTS = Field.create("database.expect_metadata_events")
+                                                            .withDisplayName("Expect metadata events")
+                                                            .withType(Type.BOOLEAN)
+                                                            .withWidth(Width.SHORT)
+                                                            .withImportance(Importance.MEDIUM)
+                                                            .withDescription("When enabled, Debezium will track schemas based on TABLE_METADATA events")
+                                                            .withDefault(false);
+
     public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
                                                    .withDisplayName("Snapshot mode")
                                                    .withEnum(SnapshotMode.class, SnapshotMode.INITIAL)

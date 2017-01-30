@@ -6,12 +6,14 @@
 package io.debezium.connector.mysql;
 
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.sql.Types;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 
+import com.github.shyiko.mysql.binlog.event.ColumnDescriptor;
+import com.github.shyiko.mysql.binlog.event.TableMetadataEventData;
+import io.debezium.relational.*;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.slf4j.Logger;
@@ -25,11 +27,6 @@ import io.debezium.connector.mysql.MySqlSystemVariables.Scope;
 import io.debezium.document.Document;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.jdbc.JdbcValueConverters.DecimalMode;
-import io.debezium.relational.Table;
-import io.debezium.relational.TableId;
-import io.debezium.relational.TableSchema;
-import io.debezium.relational.TableSchemaBuilder;
-import io.debezium.relational.Tables;
 import io.debezium.relational.ddl.DdlChanges;
 import io.debezium.relational.ddl.DdlChanges.DatabaseStatementStringConsumer;
 import io.debezium.relational.history.DatabaseHistory;
@@ -195,6 +192,44 @@ public class MySqlSchema {
     public TableSchema schemaFor(TableId id) {
         return filters.tableFilter().test(id) ? tableSchemaByTableId.get(id) : null;
     }
+
+    public TableSchema schemaFromMetadata(TableId id, TableMetadataEventData metadata) {
+        if (!filters.tableFilter().test(id)) {
+            return null;
+        }
+        TableSchema schema = tableSchemaByTableId.get(id);
+        if (schema != null) {
+            return schema;
+        }
+        List<Column> columnDefs = new ArrayList<Column>();
+        List<String> pkNames = new ArrayList<String>();
+        int pos = 0;
+        for (ColumnDescriptor descriptor : metadata.getColumnDescriptors()) {
+            Column col = Column.editor()
+                .name(descriptor.getName())
+                .position(pos)
+                .jdbcType(MysqlToJdbc.mysqlToJdbcType(descriptor.getType())) // TODO test
+                .type(descriptor.getTypeName())
+                .charsetName(null) // TODO test (descriptor.getCharacterSet())
+                .length(descriptor.getLength())
+                .scale(descriptor.getScale())
+                .optional(false) // TODO test
+                .generated(false) // TODO test
+                .autoIncremented((descriptor.getFlags() & 512) == 512)
+                .create();
+            columnDefs.add(col);
+            if ((descriptor.getFlags() & 2) == 2) {
+                pkNames.add(descriptor.getName());
+            }
+            pos++;
+        }
+        tables.overwriteTable(id, columnDefs, pkNames, null); // TODO test null charset
+        schema = schemaBuilder.create(schemaPrefix, tables.forTable(id), filters.columnFilter(), filters.columnMappers());
+        tableSchemaByTableId.put(id, schema);
+        return schema;
+    }
+
+
 
     /**
      * Get the information about where the DDL statement history is recorded.

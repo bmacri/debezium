@@ -18,23 +18,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
+import com.github.shyiko.mysql.binlog.event.*;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.BinaryLogClient.LifecycleListener;
-import com.github.shyiko.mysql.binlog.event.DeleteRowsEventData;
-import com.github.shyiko.mysql.binlog.event.Event;
-import com.github.shyiko.mysql.binlog.event.EventData;
-import com.github.shyiko.mysql.binlog.event.EventHeader;
-import com.github.shyiko.mysql.binlog.event.EventHeaderV4;
-import com.github.shyiko.mysql.binlog.event.EventType;
-import com.github.shyiko.mysql.binlog.event.GtidEventData;
-import com.github.shyiko.mysql.binlog.event.QueryEventData;
-import com.github.shyiko.mysql.binlog.event.RotateEventData;
-import com.github.shyiko.mysql.binlog.event.TableMapEventData;
-import com.github.shyiko.mysql.binlog.event.UpdateRowsEventData;
-import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
 import com.github.shyiko.mysql.binlog.event.deserialization.GtidEventDataDeserializer;
 import com.github.shyiko.mysql.binlog.io.ByteArrayInputStream;
@@ -118,6 +107,12 @@ public class BinlogReader extends AbstractReader {
                 if (event.getHeader().getEventType() == EventType.TABLE_MAP) {
                     TableMapEventData tableMapEvent = event.getData();
                     tableMapEventByTableId.put(tableMapEvent.getTableId(), tableMapEvent);
+                } else if (event.getHeader().getEventType() == EventType.TABLE_METADATA) {
+                    TableMetadataEventData tableMetadataEvent = event.getData();
+                    TableMapEventData tableMapEvent = tableMapEventByTableId.get(tableMetadataEvent.getTableId());
+                    if (tableMapEvent != null) {
+                        tableMapEvent.setMetadataEventData(tableMetadataEvent);
+                    }
                 }
                 return event;
             }
@@ -154,7 +149,7 @@ public class BinlogReader extends AbstractReader {
         eventHandlers.put(EventType.HEARTBEAT, this::handleServerHeartbeat);
         eventHandlers.put(EventType.INCIDENT, this::handleServerIncident);
         eventHandlers.put(EventType.ROTATE, this::handleRotateLogsEvent);
-        eventHandlers.put(EventType.TABLE_MAP, this::handleUpdateTableMetadata);
+        eventHandlers.put(EventType.TABLE_MAP, this::handleTableMap);
         eventHandlers.put(EventType.QUERY, this::handleQueryEvent);
         eventHandlers.put(EventType.WRITE_ROWS, this::handleInsert);
         eventHandlers.put(EventType.UPDATE_ROWS, this::handleUpdate);
@@ -164,6 +159,7 @@ public class BinlogReader extends AbstractReader {
         eventHandlers.put(EventType.EXT_DELETE_ROWS, this::handleDelete);
         eventHandlers.put(EventType.VIEW_CHANGE, this::viewChange);
         eventHandlers.put(EventType.XA_PREPARE, this::prepareTransaction);
+        eventHandlers.put(EventType.TABLE_METADATA, this::handleTableMetadata);
 
         // Get the current GtidSet from MySQL so we can get a filtered/merged GtidSet based off of the last Debezium checkpoint.
         String availableServerGtidStr = context.knownGtidSet();
@@ -479,16 +475,37 @@ public class BinlogReader extends AbstractReader {
      * 
      * @param event the update event; never null
      */
-    protected void handleUpdateTableMetadata(Event event) {
-        TableMapEventData metadata = unwrapData(event);
-        long tableNumber = metadata.getTableId();
-        String databaseName = metadata.getDatabase();
-        String tableName = metadata.getTable();
+    protected void handleTableMap(Event event) {
+        if (context.config().getBoolean(MySqlConnectorConfig.EXPECT_METADATA_EVENTS)) {
+            return;
+        }
+        handleTableUpdate(unwrapData(event), null);
+    }
+
+    protected void handleTableMetadata(Event event) {
+        if (!context.config().getBoolean(MySqlConnectorConfig.EXPECT_METADATA_EVENTS)) {
+            return;
+        }
+        TableMetadataEventData meta = unwrapData(event);
+        handleTableUpdate(meta.getTableMapEventData(), meta);
+    }
+
+    private void handleTableUpdate(TableMapEventData map, TableMetadataEventData meta) {
+        if (map == null) {
+            logger.debug("Skipping table update (missing TABLE_MAP): {}", meta);
+            return;
+        } else if (meta == null && context.config().getBoolean(MySqlConnectorConfig.EXPECT_METADATA_EVENTS)) {
+            logger.debug("Skipping table update (missing TABLE_METADATA): {}", map);
+            return;
+        }
+        long tableNumber = map.getTableId();
+        String databaseName = map.getDatabase();
+        String tableName = map.getTable();
         TableId tableId = new TableId(databaseName, null, tableName);
-        if (recordMakers.assign(tableNumber, tableId)) {
-            logger.debug("Received update table metadata event: {}", event);
+        if (recordMakers.assign(tableNumber, tableId, meta)) {
+            logger.debug("Received table update map({}) meta({})", map, meta);
         } else {
-            logger.debug("Skipping update table metadata event: {}", event);
+            logger.debug("Skipped table update map({}) meta({})", map, meta);
         }
     }
 

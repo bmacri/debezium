@@ -591,13 +591,13 @@
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                 </configuration>
                 <executions>
-                   <execution>
+                   <!--<execution>
                       <id>check-style</id>
                       <phase>verify</phase>
                       <goals>
                          <goal>checkstyle</goal>
                       </goals>
-                   </execution>
+                   </execution>-->
                 </executions>
             </plugin>
         </plugins>

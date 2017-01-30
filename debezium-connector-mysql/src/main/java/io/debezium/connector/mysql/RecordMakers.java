@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.github.shyiko.mysql.binlog.event.TableMetadataEventData;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -151,7 +152,7 @@ public class RecordMakers {
         Set<TableId> tableIds = schema.tables().tableIds();
         logger.debug("Regenerating converters for {} tables", tableIds.size());
         tableIds.forEach(id -> {
-            assign(nextTableNumber.incrementAndGet(), id);
+            assign(nextTableNumber.incrementAndGet(), id, null);
         });
     }
 
@@ -163,20 +164,27 @@ public class RecordMakers {
      * @return {@code true} if the assignment was successful, or {@code false} if the table is currently excluded in the
      *         connector's configuration
      */
-    public boolean assign(long tableNumber, TableId id) {
+    public boolean assign(long tableNumber, TableId id, TableMetadataEventData metadata) {
         Long existingTableNumber = tableNumbersByTableId.get(id);
         if (existingTableNumber != null && existingTableNumber.longValue() == tableNumber
                 && convertersByTableNumber.containsKey(tableNumber)) {
             // This is the exact same table number for the same table, so do nothing ...
             return true;
         }
-        TableSchema tableSchema = schema.schemaFor(id);
+
+        // Get schema from either registry or metadata event
+        TableSchema tableSchema;
+        if (metadata != null) {
+            tableSchema = schema.schemaFromMetadata(id, metadata);
+        } else {
+            tableSchema = schema.schemaFor(id);
+        }
         if (tableSchema == null) return false;
 
         String topicName = topicSelector.getTopic(id);
         Envelope envelope = Envelope.defineSchema()
                                     .withName(schemaNameValidator.validate(topicName + ".Envelope"))
-                                    .withRecord(schema.schemaFor(id).valueSchema())
+                                    .withRecord(tableSchema.valueSchema())
                                     .withSource(SourceInfo.SCHEMA)
                                     .build();
 
