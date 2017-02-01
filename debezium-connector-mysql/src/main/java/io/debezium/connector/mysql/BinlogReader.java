@@ -160,6 +160,8 @@ public class BinlogReader extends AbstractReader {
         eventHandlers.put(EventType.VIEW_CHANGE, this::viewChange);
         eventHandlers.put(EventType.XA_PREPARE, this::prepareTransaction);
         eventHandlers.put(EventType.TABLE_METADATA, this::handleTableMetadata);
+        eventHandlers.put(EventType.VIEW_CHANGE, this::viewChange);
+        eventHandlers.put(EventType.XA_PREPARE, this::prepareTransaction);
 
         // Get the current GtidSet from MySQL so we can get a filtered/merged GtidSet based off of the last Debezium checkpoint.
         String availableServerGtidStr = context.knownGtidSet();
