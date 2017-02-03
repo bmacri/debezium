@@ -111,7 +111,7 @@ public class BinlogReader extends AbstractReader {
                     TableMetadataEventData tableMetadataEvent = event.getData();
                     TableMapEventData tableMapEvent = tableMapEventByTableId.get(tableMetadataEvent.getTableId());
                     if (tableMapEvent != null) {
-                        tableMapEvent.setMetadataEventData(tableMetadataEvent);
+                        tableMapEvent.setMetadataEventData(tableMetadataEvent, 0);
                     }
                 }
                 return event;
