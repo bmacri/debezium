@@ -614,13 +614,21 @@ public class MySqlConnectorConfig {
                                                                     + "The default is 'true'. This is independent of how the connector internally records database history.")
                                                             .withDefault(true);
 
-    public static final Field EXPECT_METADATA_EVENTS = Field.create("database.expect_metadata_events")
+    public static final Field EXPECT_METADATA_EVENTS = Field.create("database.mysql.expect_metadata_events")
                                                             .withDisplayName("Expect metadata events")
                                                             .withType(Type.BOOLEAN)
                                                             .withWidth(Width.SHORT)
                                                             .withImportance(Importance.MEDIUM)
                                                             .withDescription("When enabled, Debezium will track schemas based on TABLE_METADATA events")
                                                             .withDefault(false);
+
+    public static final Field PARTITION_BY_TABLE_NAME = Field.create("database.mysql.partition_by_table_name")
+                                                             .withDisplayName("Partition by table name")
+                                                             .withType(Type.BOOLEAN)
+                                                             .withWidth(Width.SHORT)
+                                                             .withImportance(Importance.MEDIUM)
+                                                             .withDescription("When enabled, partition by table name instead of primary key")
+                                                             .withDefault(false);
 
     public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
                                                    .withDisplayName("Snapshot mode")

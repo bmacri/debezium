@@ -95,6 +95,7 @@ public class MySqlSchema {
         DecimalMode decimalMode = decimalHandlingMode.asDecimalMode();
         MySqlValueConverters valueConverters = new MySqlValueConverters(decimalMode, adaptiveTimePrecision);
         this.schemaBuilder = new TableSchemaBuilder(valueConverters, schemaNameValidator::validate);
+        this.schemaBuilder.setPartitionByTableName(config.getBoolean(MySqlConnectorConfig.PARTITION_BY_TABLE_NAME));
 
         // Set up the server name and schema prefix ...
         if (serverName != null) serverName = serverName.trim();
@@ -203,7 +204,7 @@ public class MySqlSchema {
         }
         List<Column> columnDefs = new ArrayList<Column>();
         List<String> pkNames = new ArrayList<String>();
-        int pos = 0;
+        int pos = 1;
         for (ColumnDescriptor descriptor : metadata.getColumnDescriptors()) {
             Column col = Column.editor()
                 .name(descriptor.getName())
