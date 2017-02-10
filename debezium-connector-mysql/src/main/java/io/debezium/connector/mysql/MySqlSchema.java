@@ -199,9 +199,11 @@ public class MySqlSchema {
             return null;
         }
         TableSchema schema = tableSchemaByTableId.get(id);
-        if (schema != null) {
+
+        if (schema != null && schema.getTableVersionId() == metadata.getTableId()) {
             return schema;
         }
+
         List<Column> columnDefs = new ArrayList<Column>();
         List<String> pkNames = new ArrayList<String>();
         int pos = 1;
@@ -226,6 +228,7 @@ public class MySqlSchema {
         }
         tables.overwriteTable(id, columnDefs, pkNames, null); // TODO test null charset
         schema = schemaBuilder.create(schemaPrefix, tables.forTable(id), filters.columnFilter(), filters.columnMappers());
+        schema.setTableVersionId(metadata.getTableId());
         tableSchemaByTableId.put(id, schema);
         return schema;
     }

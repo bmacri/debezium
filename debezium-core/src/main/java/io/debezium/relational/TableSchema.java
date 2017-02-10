@@ -51,6 +51,7 @@ public class TableSchema {
     private final Schema valueSchema;
     private final Function<Object[], Object> keyGenerator;
     private final Function<Object[], Struct> valueGenerator;
+    private long tableVersionId = -1;
 
     /**
      * Create an instance with the specified {@link Schema}s for the keys and values, and the functions that generate the
@@ -110,7 +111,15 @@ public class TableSchema {
     public Struct valueFromColumnData(Object[] columnData) {
         return columnData == null ? null : valueGenerator.apply(columnData);
     }
-    
+
+    public void setTableVersionId(long id) {
+        tableVersionId = id;
+    }
+
+    public long getTableVersionId() {
+        return tableVersionId;
+    }
+
     @Override
     public int hashCode() {
         return valueSchema().hashCode();
