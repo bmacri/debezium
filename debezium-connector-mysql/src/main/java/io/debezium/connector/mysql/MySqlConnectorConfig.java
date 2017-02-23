@@ -28,6 +28,7 @@ import io.debezium.jdbc.JdbcValueConverters.DecimalMode;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.DatabaseHistory;
 import io.debezium.relational.history.KafkaDatabaseHistory;
+import io.debezium.relational.topic.ByTableTopicMapper;
 
 /**
  * The configuration properties.
@@ -630,6 +631,16 @@ public class MySqlConnectorConfig {
                                                              .withDescription("When enabled, partition by table name instead of primary key")
                                                              .withDefault(false);
 
+    public static final Field TOPIC_MAPPER = Field.create("topic.mapper")
+                                                   .withDisplayName("Topic mapper")
+                                                   .withType(Type.CLASS)
+                                                   .withWidth(Width.LONG)
+                                                   .withImportance(Importance.LOW)
+                                                   .withDescription("The name of the TopicMapper class that should be used to determine how change events for tables should be mapped into topics. "
+                                                           + "Built in options include '" + ByTableTopicMapper.class.getName()
+                                                           + "' (the default).")
+                                                   .withDefault(ByTableTopicMapper.class.getName());
+
     public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
                                                    .withDisplayName("Snapshot mode")
                                                    .withEnum(SnapshotMode.class, SnapshotMode.INITIAL)
@@ -717,7 +728,7 @@ public class MySqlConnectorConfig {
                                                      TABLE_WHITELIST, TABLE_BLACKLIST, TABLES_IGNORE_BUILTIN,
                                                      DATABASE_WHITELIST, DATABASE_BLACKLIST,
                                                      COLUMN_BLACKLIST, SNAPSHOT_MODE, SNAPSHOT_MINIMAL_LOCKING,
-                                                     GTID_SOURCE_INCLUDES, GTID_SOURCE_EXCLUDES,
+                                                     TOPIC_MAPPER, GTID_SOURCE_INCLUDES, GTID_SOURCE_EXCLUDES,
                                                      GTID_SOURCE_FILTER_DML_EVENTS,
                                                      TIME_PRECISION_MODE, DECIMAL_HANDLING_MODE,
                                                      SSL_MODE, SSL_KEYSTORE, SSL_KEYSTORE_PASSWORD,
@@ -742,7 +753,7 @@ public class MySqlConnectorConfig {
                     KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
                     KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, DATABASE_HISTORY);
         Field.group(config, "Events", INCLUDE_SCHEMA_CHANGES, TABLES_IGNORE_BUILTIN, DATABASE_WHITELIST, TABLE_WHITELIST,
-                    COLUMN_BLACKLIST, TABLE_BLACKLIST, DATABASE_BLACKLIST,
+                    COLUMN_BLACKLIST, TABLE_BLACKLIST, DATABASE_BLACKLIST, TOPIC_MAPPER,
                     GTID_SOURCE_INCLUDES, GTID_SOURCE_EXCLUDES, GTID_SOURCE_FILTER_DML_EVENTS);
         Field.group(config, "Connector", CONNECTION_TIMEOUT_MS, KEEP_ALIVE, MAX_QUEUE_SIZE, MAX_BATCH_SIZE, POLL_INTERVAL_MS,
                     SNAPSHOT_MODE, SNAPSHOT_MINIMAL_LOCKING, TIME_PRECISION_MODE, DECIMAL_HANDLING_MODE);
