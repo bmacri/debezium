@@ -208,6 +208,12 @@ public class MySqlSchema {
         List<String> pkNames = new ArrayList<String>();
         int pos = 1;
         for (ColumnDescriptor descriptor : metadata.getColumnDescriptors()) {
+            // See https://github.com/percona/percona-server/blob/5.6/include/mysql_com.h#L95 for bitmasks
+            boolean isPkey = (descriptor.getFlags() & 2) == 2;
+            boolean isAutoIncr = (descriptor.getFlags() & 512) == 512;
+            boolean hasDefault = (descriptor.getFlags() & 4096) != 4096;
+            boolean isNullable = (descriptor.getFlags() & 1) != 1;
+            boolean isOptional = !isPkey && (hasDefault || isNullable);
             Column col = Column.editor()
                 .name(descriptor.getName())
                 .position(pos)
@@ -216,12 +222,12 @@ public class MySqlSchema {
                 .charsetName(null) // TODO test (descriptor.getCharacterSet())
                 .length(descriptor.getLength())
                 .scale(descriptor.getScale())
-                .optional(false) // TODO test
+                .optional(isOptional) // TODO test
                 .generated(false) // TODO test
-                .autoIncremented((descriptor.getFlags() & 512) == 512)
+                .autoIncremented(isAutoIncr)
                 .create();
             columnDefs.add(col);
-            if ((descriptor.getFlags() & 2) == 2) {
+            if (isPkey) {
                 pkNames.add(descriptor.getName());
             }
             pos++;
