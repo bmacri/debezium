@@ -55,8 +55,6 @@ public class TableSchemaBuilder {
     private final Function<String, String> schemaNameValidator;
     private final ValueConverterProvider valueConverterProvider;
 
-    private boolean partitionByTableName = false;
-
     /**
      * Create a new instance of the builder.
      *
@@ -70,15 +68,6 @@ public class TableSchemaBuilder {
         this.topicMapper = topicMapper;
         this.schemaNameValidator = schemaNameValidator;
         this.valueConverterProvider = valueConverterProvider;
-    }
-
-    /**
-     * If set to true, partition by table name instead of primary key.
-     *
-     * @param partitionByTableName
-     */
-    public void setPartitionByTableName(boolean partitionByTableName) {
-        this.partitionByTableName = partitionByTableName;
     }
 
     /**
@@ -178,14 +167,7 @@ public class TableSchemaBuilder {
         }
 
         // Create the generators ...
-        Function<Object[], Object> keyGenerator;
-        if (partitionByTableName) {
-            keyGenerator = (row) -> {
-                return table.id().table();
-            };
-        } else {
-            keyGenerator = createKeyGenerator(keySchema, tableId, table, topicMapper, schemaPrefix);
-        }
+        Function<Object[], Object> keyGenerator = createKeyGenerator(keySchema, tableId, table, topicMapper, schemaPrefix);
         Function<Object[], Struct> valueGenerator = createValueGenerator(valSchema, tableId, table.columns(), filter, mappers);
 
         // And the table schema ...

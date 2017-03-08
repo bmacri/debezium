@@ -104,7 +104,6 @@ public class MySqlSchema {
         DecimalMode decimalMode = decimalHandlingMode.asDecimalMode();
         MySqlValueConverters valueConverters = new MySqlValueConverters(decimalMode, adaptiveTimePrecision);
         this.schemaBuilder = new TableSchemaBuilder(topicMapper, valueConverters, schemaNameValidator::validate);
-        this.schemaBuilder.setPartitionByTableName(config.getBoolean(MySqlConnectorConfig.PARTITION_BY_TABLE_NAME));
 
         // Set up the server name and schema prefix ...
         if (serverName != null) serverName = serverName.trim();

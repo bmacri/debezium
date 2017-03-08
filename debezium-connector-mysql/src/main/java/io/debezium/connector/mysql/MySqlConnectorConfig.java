@@ -623,14 +623,6 @@ public class MySqlConnectorConfig {
                                                             .withDescription("When enabled, Debezium will track schemas based on TABLE_METADATA events")
                                                             .withDefault(false);
 
-    public static final Field PARTITION_BY_TABLE_NAME = Field.create("database.mysql.partition_by_table_name")
-                                                             .withDisplayName("Partition by table name")
-                                                             .withType(Type.BOOLEAN)
-                                                             .withWidth(Width.SHORT)
-                                                             .withImportance(Importance.MEDIUM)
-                                                             .withDescription("When enabled, partition by table name instead of primary key")
-                                                             .withDefault(false);
-
     public static final Field TOPIC_MAPPER = Field.create("topic.mapper")
                                                    .withDisplayName("Topic mapper")
                                                    .withType(Type.CLASS)
