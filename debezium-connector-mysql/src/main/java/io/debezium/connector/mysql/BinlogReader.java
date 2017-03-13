@@ -91,7 +91,6 @@ public class BinlogReader extends AbstractReader {
         client.setKeepAlive(context.config().getBoolean(MySqlConnectorConfig.KEEP_ALIVE));
         client.registerEventListener(this::handleEvent);
         client.registerLifecycleListener(new ReaderThreadLifecycleListener());
-        client.setGtidSetFallbackToPurged(true);
         if (logger.isDebugEnabled()) client.registerEventListener(this::logEvent);
 
         boolean filterDmlEventsByGtidSource = context.config().getBoolean(MySqlConnectorConfig.GTID_SOURCE_FILTER_DML_EVENTS);
