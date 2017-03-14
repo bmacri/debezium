@@ -165,7 +165,11 @@ public final class MySqlTaskContext extends MySqlJdbcContext {
     }
 
     public boolean isSnapshotNeverAllowed() {
-        return snapshotMode() == SnapshotMode.NEVER;
+        return snapshotMode() == SnapshotMode.NEVER || snapshotMode() == SnapshotMode.TWITTER_PATCH;
+    }
+
+    public boolean isSnapshotModeTwitterPatch() {
+        return snapshotMode() == SnapshotMode.TWITTER_PATCH;
     }
 
     public boolean isInitialSnapshotOnly() {

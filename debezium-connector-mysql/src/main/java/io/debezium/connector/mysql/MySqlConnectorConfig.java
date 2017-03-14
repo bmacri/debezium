@@ -186,7 +186,17 @@ public class MySqlConnectorConfig {
         /**
          * Perform a snapshot and then stop before attempting to read the binlog.
          */
-        INITIAL_ONLY("initial_only");
+        INITIAL_ONLY("initial_only"),
+
+        /**
+         * 1) Never performs a snapshot (gets schema info from twitter patch)
+         * 2) The first time Debezium connects in this mode, it sets Debezium's executed GTID set to be the same as
+         *      that of MySQL server it is connecting to. This is necessary to allow Debezium to reconnect later.
+         * 3) The first time Debezium connects in this mode, it starts reading the binlog at the GTID corresponding to
+         *      the last GTID in the executed GTID set we marked in step 2 (i.e. starts reading at the binlog's current
+         *      position).
+         */
+        TWITTER_PATCH("twitter_patch");
 
         private final String value;
 

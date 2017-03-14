@@ -105,19 +105,43 @@ public final class MySqlConnectorTask extends SourceTask {
             } else {
                 // We have no recorded offsets ...
                 if (taskContext.isSnapshotNeverAllowed()) {
-                    // We're not allowed to take a snapshot, so instead we have to assume that the binlog contains the
-                    // full history of the database.
-                    logger.info("Found no existing offset and snapshots disallowed, so starting at beginning of binlog");
-                    source.setBinlogStartPoint("", 0L);// start from the beginning of the binlog
-                    taskContext.initializeHistory();
+                    if (taskContext.isSnapshotModeTwitterPatch()) {
+                        logger.info("Found no existing offset and we're in SnapshotMode.TWITTER_PATCH.");
+                        taskContext.jdbc().query("SHOW MASTER STATUS", rs -> {
+                            if (rs.next()) {
+                                String binlogFilename = rs.getString(1);
+                                long binlogPosition = rs.getLong(2);
+                                source.setBinlogStartPoint(binlogFilename, binlogPosition);
+                                if (rs.getMetaData().getColumnCount() > 4) {
+                                    // This column exists only in MySQL 5.6.5 or later ...
+                                    String gtidSet = rs.getString(5);// GTID set, may be null, blank, or contain a GTID set
+                                    source.setCompletedGtidSet(gtidSet);
+                                    logger.info("\t using binlog '{}' at position '{}' and gtid '{}'", binlogFilename, binlogPosition,
+                                            gtidSet);
+                                } else {
+                                    logger.info("\t using binlog '{}' at position '{}'", binlogFilename, binlogPosition);
+                                }
+                            } else {
+                                throw new IllegalStateException("Cannot read the binlog filename and position via 'SHOW MASTER STATUS'."
+                                        + " Make sure your server is correctly configured");
+                            }
+                        });
+                        taskContext.initializeHistory();
+                    } else { // We must be in SnapshotMode.NEVER
+                        // We're not allowed to take a snapshot, so instead we have to assume that the binlog contains the
+                        // full history of the database.
+                        logger.info("Found no existing offset and snapshots disallowed, so starting at beginning of binlog");
+                        source.setBinlogStartPoint("", 0L);// start from the beginning of the binlog
+                        taskContext.initializeHistory();
 
-                    // Look to see what the first available binlog file is called, and whether it looks like binlog files have
-                    // been purged. If so, then output a warning ...
-                    String earliestBinlogFilename = earliestBinlogFilename();
-                    if (earliestBinlogFilename == null) {
-                        logger.warn("No binlog appears to be available. Ensure that the MySQL row-level binlog is enabled.");
-                    } else if (!earliestBinlogFilename.endsWith("00001")) {
-                        logger.warn("It is possible the server has purged some binlogs. If this is the case, then using snapshot mode may be required.");
+                        // Look to see what the first available binlog file is called, and whether it looks like binlog files have
+                        // been purged. If so, then output a warning ...
+                        String earliestBinlogFilename = earliestBinlogFilename();
+                        if (earliestBinlogFilename == null) {
+                            logger.warn("No binlog appears to be available. Ensure that the MySQL row-level binlog is enabled.");
+                        } else if (!earliestBinlogFilename.endsWith("00001")) {
+                            logger.warn("It is possible the server has purged some binlogs. If this is the case, then using snapshot mode may be required.");
+                        }
                     }
                 } else {
                     // We are allowed to use snapshots, and that is the best way to start ...
