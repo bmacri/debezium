@@ -20,8 +20,6 @@ import static org.fest.assertions.Assertions.assertThat;
 
 import io.debezium.jdbc.JdbcValueConverters;
 import io.debezium.time.Date;
-import io.debezium.relational.topic.TopicMapper;
-import io.debezium.relational.topic.ByTableTopicMapper;
 import io.debezium.util.AvroValidator;
 
 public class TableSchemaBuilderTest {
@@ -36,11 +34,9 @@ public class TableSchemaBuilderTest {
     private Column c4;
     private TableSchema schema;
     private AvroValidator validator;
-    private TopicMapper topicMapper;
 
     @Before
     public void beforeEach() {
-        topicMapper = new ByTableTopicMapper();
         validator = AvroValidator.create((original,replacement, conflict)->{
             fail("Should not have come across an invalid schema name");
         });
@@ -82,19 +78,19 @@ public class TableSchemaBuilderTest {
 
     @Test(expected = NullPointerException.class)
     public void shouldFailToBuildTableSchemaFromNullTable() {
-        new TableSchemaBuilder(topicMapper, new JdbcValueConverters(),validator::validate).create(prefix,null);
+        new TableSchemaBuilder(new JdbcValueConverters(),validator::validate).create(prefix,null);
     }
 
     @Test
     public void shouldBuildTableSchemaFromTable() {
-        schema = new TableSchemaBuilder(topicMapper, new JdbcValueConverters(),validator::validate).create(prefix,table);
+        schema = new TableSchemaBuilder(new JdbcValueConverters(),validator::validate).create(prefix,table);
         assertThat(schema).isNotNull();
     }
 
     @Test
     public void shouldBuildTableSchemaFromTableWithoutPrimaryKey() {
         table = table.edit().setPrimaryKeyNames().create();
-        schema = new TableSchemaBuilder(topicMapper, new JdbcValueConverters(),validator::validate).create(prefix,table);
+        schema = new TableSchemaBuilder(new JdbcValueConverters(),validator::validate).create(prefix,table);
         assertThat(schema).isNotNull();
         // Check the keys ...
         assertThat(schema.keySchema()).isNull();

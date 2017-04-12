@@ -35,7 +35,10 @@ public final class MySqlConnectorTask extends SourceTask {
     private volatile ChainedReader readers;
 
     /**
-     * Create an instance of the log reader that uses Kafka to store database schema history and DDL changes.
+     * Create an instance of the log reader that uses Kafka to store database schema history and the
+     * {@link TopicSelector#defaultSelector(String) default topic selector} of "{@code <serverName>.<databaseName>.<tableName>}"
+     * for
+     * data and "{@code <serverName>}" for metadata.
      */
     public MySqlConnectorTask() {
     }

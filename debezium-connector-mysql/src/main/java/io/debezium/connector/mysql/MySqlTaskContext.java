@@ -29,12 +29,16 @@ public final class MySqlTaskContext extends MySqlJdbcContext {
 
     private final SourceInfo source;
     private final MySqlSchema dbSchema;
+    private final TopicSelector topicSelector;
     private final RecordMakers recordProcessor;
     private final Predicate<String> gtidSourceFilter;
     private final Clock clock = Clock.system();
 
     public MySqlTaskContext(Configuration config) {
         super(config);
+
+        // Set up the topic selector ...
+        this.topicSelector = TopicSelector.defaultSelector(serverName());
 
         // Set up the source information ...
         this.source = new SourceInfo();
@@ -43,18 +47,22 @@ public final class MySqlTaskContext extends MySqlJdbcContext {
         // Set up the GTID filter ...
         String gtidSetIncludes = config.getString(MySqlConnectorConfig.GTID_SOURCE_INCLUDES);
         String gtidSetExcludes = config.getString(MySqlConnectorConfig.GTID_SOURCE_EXCLUDES);
-        this.gtidSourceFilter = gtidSetIncludes != null ? Predicates.includes(gtidSetIncludes)
-                : (gtidSetExcludes != null ? Predicates.excludes(gtidSetExcludes) : null);
+        this.gtidSourceFilter = gtidSetIncludes != null ? Predicates.includesUuids(gtidSetIncludes)
+                : (gtidSetExcludes != null ? Predicates.excludesUuids(gtidSetExcludes) : null);
 
         // Set up the MySQL schema ...
         this.dbSchema = new MySqlSchema(config, serverName(), this.gtidSourceFilter);
 
         // Set up the record processor ...
-        this.recordProcessor = new RecordMakers(dbSchema, source, serverName());
+        this.recordProcessor = new RecordMakers(dbSchema, source, topicSelector);
     }
 
     public String connectorName() {
         return config.getString("name");
+    }
+
+    public TopicSelector topicSelector() {
+        return topicSelector;
     }
 
     public SourceInfo source() {

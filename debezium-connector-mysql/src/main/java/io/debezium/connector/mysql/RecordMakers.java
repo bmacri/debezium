@@ -38,7 +38,7 @@ public class RecordMakers {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final MySqlSchema schema;
     private final SourceInfo source;
-    private final String ddlChangeTopicName;
+    private final TopicSelector topicSelector;
     private final Map<Long, Converter> convertersByTableNumber = new HashMap<>();
     private final Map<TableId, Long> tableNumbersByTableId = new HashMap<>();
     private final Schema schemaChangeKeySchema;
@@ -50,12 +50,12 @@ public class RecordMakers {
      * 
      * @param schema the schema information about the MySQL server databases; may not be null
      * @param source the connector's source information; may not be null
-     * @param ddlChangeTopicName the name of the topic to which DDL changes are written; may not be null
+     * @param topicSelector the selector for topic names; may not be null
      */
-    public RecordMakers(MySqlSchema schema, SourceInfo source, String ddlChangeTopicName) {
+    public RecordMakers(MySqlSchema schema, SourceInfo source, TopicSelector topicSelector) {
         this.schema = schema;
         this.source = source;
-        this.ddlChangeTopicName = ddlChangeTopicName;
+        this.topicSelector = topicSelector;
         this.schemaChangeKeySchema = SchemaBuilder.struct()
                                                   .name(schemaNameValidator.validate("io.debezium.connector.mysql.SchemaChangeKey"))
                                                   .field(Fields.DATABASE_NAME, Schema.STRING_SCHEMA)
@@ -118,12 +118,12 @@ public class RecordMakers {
      * @return the number of records produced; will be 0 or more
      */
     public int schemaChanges(String databaseName, String ddlStatements, BlockingConsumer<SourceRecord> consumer) {
+        String topicName = topicSelector.getPrimaryTopic();
         Integer partition = 0;
         Struct key = schemaChangeRecordKey(databaseName);
         Struct value = schemaChangeRecordValue(databaseName, ddlStatements);
         SourceRecord record = new SourceRecord(source.partition(), source.offset(),
-                                               ddlChangeTopicName, partition,
-                                               schemaChangeKeySchema, key, schemaChangeValueSchema, value);
+                topicName, partition, schemaChangeKeySchema, key, schemaChangeValueSchema, value);
         try {
             consumer.accept(record);
             return 1;
@@ -181,7 +181,7 @@ public class RecordMakers {
         }
         if (tableSchema == null) return false;
 
-        String topicName = tableSchema.getEnvelopeSchemaName();
+        String topicName = topicSelector.getTopic(id);
         Envelope envelope = Envelope.defineSchema()
                                     .withName(schemaNameValidator.validate(topicName + ".Envelope"))
                                     .withRecord(tableSchema.valueSchema())
