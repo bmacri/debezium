@@ -59,8 +59,8 @@
         <version.confluent.platform>3.2.0</version.confluent.platform>
 
         <!-- Databases -->
-        <version.postgresql.driver>42.0.0</version.postgresql.driver>
-        <version.mysql.server>5.6</version.mysql.server>
+        <version.postgresql.driver>42.0.0-SNAPSHOT</version.postgresql.driver>
+        <version.mysql.server>5.7</version.mysql.server>
         <version.mysql.driver>5.1.40</version.mysql.driver>
         <version.mysql.binlog>0.11.0</version.mysql.binlog>
         <version.mongo.server>3.2.12</version.mongo.server>
