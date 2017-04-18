@@ -221,7 +221,7 @@ public class MySqlSchema {
             boolean isAutoIncr = (descriptor.getFlags() & 512) == 512;
             boolean hasDefault = (descriptor.getFlags() & 4096) != 4096;
             boolean isNullable = (descriptor.getFlags() & 1) != 1;
-            boolean isOptional = !isPkey && (hasDefault || isNullable);
+            boolean isOptional = hasDefault || isNullable;
             Column col = Column.editor()
                 .name(descriptor.getName())
                 .position(pos)
